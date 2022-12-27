@@ -1,4 +1,5 @@
 from time import perf_counter
+from typing import List
 
 import numpy as np
 from sklearn.cluster import KMeans
@@ -12,7 +13,7 @@ class MMCA:
         self.X = X
         return self
 
-    def predict(self, X):
+    def predict(self, X) -> List[int, ...]:
         num_features, num_bands = X.shape
 
         clusters = KMeans(self.n_bands, n_init='auto').fit_predict(X)
