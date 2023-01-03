@@ -7,6 +7,7 @@ from sklearn.cluster import AgglomerativeClustering
 from scipy.special import kl_div, entr, softmax
 
 from base_class import BaseAlgorithm
+from common_utils.timer import timeit
 
 
 class WALU(BaseAlgorithm):
@@ -47,8 +48,8 @@ class WALUDI(WALU):
         return self
 
     def predict(self, X):
-        super().check_input(X)
-        X = super()._flat_input(X)
+        # super().check_input(X)
+        # X = super()._flat_input(X)
 
         D = self._calculate_kl_divergence_score(X)
         clusters = self.hc.fit_predict(D)
@@ -181,14 +182,14 @@ class WALUMI(WALU):
         return _pmi.sum(axis=0)
 
 
-if __name__ == '__main__':
-    start = perf_counter()
-    # a = np.random.randn(50,13)
-    # a = np.ones((50,13)) * 0.5
-    a = np.random.randint(0, 255, (700*670, 128))
-    # print(a)
+@timeit()
+def main():
+    a = np.random.randint(0, 255, (700, 670, 128))
     w = WALUMI(n_bands=3)
     w.fit(a)
     print(w.predict(a))
-    end = perf_counter()
-    print(f'ETA: {(end - start) / 60} minutes')
+
+
+if __name__ == '__main__':
+    main()
+

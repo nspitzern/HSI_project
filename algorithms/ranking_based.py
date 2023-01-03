@@ -1,10 +1,10 @@
 from time import perf_counter
-from typing import List
 
 import numpy as np
 from sklearn.cluster import KMeans
 
 from base_class import BaseAlgorithm
+from common_utils.timer import timeit
 
 
 class MMCA(BaseAlgorithm):
@@ -16,7 +16,7 @@ class MMCA(BaseAlgorithm):
         self.X = X
         return self
 
-    def predict(self, X) -> List[int, ...]:
+    def predict(self, X):
         super().check_input(X)
         X = super()._flat_input(X)
 
@@ -50,11 +50,13 @@ class MMCA(BaseAlgorithm):
         return idxs[:self.n_bands]
 
 
-if __name__ == '__main__':
-    start = perf_counter()
-    a = np.random.randint(0, 255, (700*670, 210))
-    w = MMCA(n_bands=20)
+@timeit(num_repeats=5)
+def main():
+    a = np.random.randint(0, 255, (700, 670, 210))
+    w = MMCA(n_bands=10)
     w.fit(a)
     print(w.predict(a))
-    end = perf_counter()
-    print(f'ETA: {(end - start) / 60} minutes')
+
+
+if __name__ == '__main__':
+    main()

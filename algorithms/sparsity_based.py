@@ -14,6 +14,7 @@ import numpy as np
 from sklearn.cluster import SpectralClustering
 
 from base_class import BaseAlgorithm
+from common_utils.timer import timeit
 
 
 class ISSC_HSI(BaseAlgorithm):
@@ -81,14 +82,13 @@ class ISSC_HSI(BaseAlgorithm):
         return bands
 
 
-if __name__ == '__main__':
-    start = perf_counter()
-    # a = np.random.randn(50,13)
-    # a = np.ones((50,13)) * 0.5
-    a = np.random.randint(0, 255, (700*670, 128))
-    # print(a)
+@timeit(num_repeats=5)
+def main():
+    a = np.random.randint(0, 255, (700, 670, 210))
     w = ISSC_HSI(n_band=10)
     w.fit(a)
     print(w.predict(a))
-    end = perf_counter()
-    print(f'ETA: {(end - start) / 60} minutes')
+
+
+if __name__ == '__main__':
+    main()

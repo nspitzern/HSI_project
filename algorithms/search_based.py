@@ -5,6 +5,7 @@ import numpy as np
 from pysptools.eea import FIPPI, NFINDR
 
 from base_class import BaseAlgorithm
+from common_utils.timer import timeit
 
 
 end_members_funcs = {
@@ -70,7 +71,7 @@ class LP(BaseAlgorithm):
         i = 1
         while not found:
             i += 1
-            print(f'{i=}')
+            # print(f'{i=}')
             if i > X_num_bands ** 2:
                 raise StopIteration('Error, exceeded number of iterations')
 
@@ -92,7 +93,7 @@ class LP(BaseAlgorithm):
 
         first_band_idx = previous_idx
         second_band_idx = current_idx
-        print(f'Starting idxs: {previous_idx, current_idx}')
+        # print(f'Starting idxs: {previous_idx, current_idx}')
         return X[:, [first_band_idx, second_band_idx]], [first_band_idx, second_band_idx]
 
     def _choose_new_band(self, B, bands_group, num_features) -> int:
@@ -113,11 +114,13 @@ class LP(BaseAlgorithm):
         return best_band.item()
 
 
-if __name__ == '__main__':
-    start = perf_counter()
+@timeit(num_repeats=5)
+def main():
     a = np.random.randint(0, 255, (700, 670, 210))
     w = LP(n_bands=10, end_members_ext_func='FIPPI')
     w.fit(a)
     print(w.predict(a))
-    end = perf_counter()
-    print(f'ETA: {(end - start) / 60} minutes')
+
+
+if __name__ == '__main__':
+    main()
