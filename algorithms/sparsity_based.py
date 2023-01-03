@@ -13,14 +13,17 @@ from time import perf_counter
 import numpy as np
 from sklearn.cluster import SpectralClustering
 
+from base_class import BaseAlgorithm
 
-class ISSC_HSI(object):
+
+class ISSC_HSI(BaseAlgorithm):
     """
     :argument:
         Implementation of L2 norm based sparse self-expressive clustering model
         with affinity measurement basing on angular similarity
     """
     def __init__(self, n_band=10, coef_=1):
+        super(ISSC_HSI, self).__init__(n_band)
         self.n_band = n_band
         self.coef_ = coef_
 
@@ -33,8 +36,8 @@ class ISSC_HSI(object):
         :param X: shape [n_row*n_clm, n_band]
         :return: selected band subset
         """
-        assert len(X.shape) == 2, "Provide data in the shape: (n_rows*n_cols, n_bands)"
-        assert X.shape[1] <= self.n_band, "Number of desired bands can't be larger than the number of bands in the image"
+        super().check_input(X)
+        X = super()._flat_input(X)
 
         I = np.eye(X.shape[1])
         coefficient_mat = -1 * np.dot(np.linalg.inv(np.dot(X.transpose(), X) + self.coef_ * I),

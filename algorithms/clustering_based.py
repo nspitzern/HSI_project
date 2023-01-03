@@ -6,10 +6,12 @@ from sklearn.metrics import mutual_info_score
 from sklearn.cluster import AgglomerativeClustering
 from scipy.special import kl_div, entr, softmax
 
+from base_class import BaseAlgorithm
 
-class WALU:
+
+class WALU(BaseAlgorithm):
     def __init__(self, n_bands):
-        self.n_bands = n_bands
+        super(WALU, self).__init__(n_bands)
 
     def cluster(self, X):
         pass
@@ -45,6 +47,9 @@ class WALUDI(WALU):
         return self
 
     def predict(self, X):
+        super().check_input(X)
+        X = super()._flat_input(X)
+
         D = self._calculate_kl_divergence_score(X)
         clusters = self.hc.fit_predict(D)
 
@@ -112,6 +117,9 @@ class WALUMI(WALU):
         #     D[-1, -1] = np.inf
 
     def predict(self, X):
+        super().check_input(X)
+        X = super()._flat_input(X)
+
         D = self._calculate_normalized_mutual_info_distance(X)
         clusters = self.hc.fit_predict(D)
 

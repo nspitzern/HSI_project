@@ -4,6 +4,8 @@ from typing import List, Tuple
 import numpy as np
 from pysptools.eea import FIPPI, NFINDR
 
+from base_class import BaseAlgorithm
+
 
 end_members_funcs = {
     'fippi': FIPPI,
@@ -11,8 +13,9 @@ end_members_funcs = {
 }
 
 
-class LP:
+class LP(BaseAlgorithm):
     def __init__(self, n_bands, end_members_ext_func=''):
+        super(LP, self).__init__(n_bands)
         self.n_bands = n_bands
         self.end_members_func = end_members_ext_func.lower()
 
@@ -21,6 +24,7 @@ class LP:
         return self
 
     def predict(self, X) -> List:
+        super().check_input(X)
 
         try:
             # preprocessing
@@ -69,7 +73,7 @@ class LP:
             print(f'{i=}')
             if i > X_num_bands ** 2:
                 raise StopIteration('Error, exceeded number of iterations')
-            
+
             # get the projection of all other vectors except current band on the perpendicular plane of current band
             # i.e. current band - A_i, get the projection of all other bands A_j (i!=j) on {A_i}_perp
             X_proj = _get_X_proj(X, current_idx)
@@ -112,7 +116,7 @@ class LP:
 if __name__ == '__main__':
     start = perf_counter()
     a = np.random.randint(0, 255, (700, 670, 210))
-    w = LP(n_bands=10, end_members_ext_func='nfindr')
+    w = LP(n_bands=10, end_members_ext_func='FIPPI')
     w.fit(a)
     print(w.predict(a))
     end = perf_counter()

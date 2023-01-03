@@ -4,9 +4,12 @@ from typing import List
 import numpy as np
 from sklearn.cluster import KMeans
 
+from base_class import BaseAlgorithm
 
-class MMCA:
+
+class MMCA(BaseAlgorithm):
     def __init__(self, n_bands):
+        super(MMCA, self).__init__(n_bands)
         self.n_bands = n_bands
 
     def fit(self, X):
@@ -14,6 +17,9 @@ class MMCA:
         return self
 
     def predict(self, X) -> List[int, ...]:
+        super().check_input(X)
+        X = super()._flat_input(X)
+
         num_features, num_bands = X.shape
 
         clusters = KMeans(self.n_bands, n_init='auto').fit_predict(X)
