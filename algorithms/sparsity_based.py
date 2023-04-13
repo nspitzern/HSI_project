@@ -8,12 +8,11 @@ Formula:
 Solution:
     Wˆ = −(X^T X + lambda*I)^−1 (diag((X^T X + lambda*I)−1))^−1
 """
-from time import perf_counter
 
 import numpy as np
 from sklearn.cluster import SpectralClustering
 
-from base_class import BaseAlgorithm
+from algorithms.base_class import BaseAlgorithm
 from common_utils.timer import timeit
 
 
@@ -33,6 +32,7 @@ class ISSC_HSI(BaseAlgorithm):
         return self
 
     def predict(self, X):
+        # TODO: check option to use matlab?
         """
         :param X: shape [n_row*n_clm, n_band]
         :return: selected band subset

@@ -1,15 +1,20 @@
+"""
+Ref: https://www.researchgate.net/publication/3205663_Clustering-Based_Hyperspectral_Band_Selection_Using_Information_Measures
+
+"""
+
 import itertools
-from time import perf_counter
 
 import numpy as np
 from sklearn.metrics import mutual_info_score
 from sklearn.cluster import AgglomerativeClustering
 from scipy.special import kl_div, entr, softmax
 
-from base_class import BaseAlgorithm
+from algorithms.base_class import BaseAlgorithm
 from common_utils.timer import timeit
 
 
+# TODO: check option for another lang
 class WALU(BaseAlgorithm):
     def __init__(self, n_bands):
         super(WALU, self).__init__(n_bands)
@@ -48,8 +53,8 @@ class WALUDI(WALU):
         return self
 
     def predict(self, X):
-        # super().check_input(X)
-        # X = super()._flat_input(X)
+        super().check_input(X)
+        X = super()._flat_input(X)
 
         D = self._calculate_kl_divergence_score(X)
         clusters = self.hc.fit_predict(D)
@@ -185,7 +190,7 @@ class WALUMI(WALU):
 @timeit()
 def main():
     a = np.random.randint(0, 255, (700, 670, 128))
-    w = WALUMI(n_bands=3)
+    w = WALUDI(n_bands=3)
     w.fit(a)
     print(w.predict(a))
 

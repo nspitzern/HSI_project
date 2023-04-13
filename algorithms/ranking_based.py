@@ -1,10 +1,15 @@
-from time import perf_counter
+"""
+Ref: https://www.researchgate.net/publication/3202233_A_joint_band_prioritization_and_band-decorrelation_approach_to_band_selection_for_hyperspectral_image_classification
+
+"""
 
 import numpy as np
 from sklearn.cluster import KMeans
+from scipy.special import rel_entr
 
-from base_class import BaseAlgorithm
+from algorithms.base_class import BaseAlgorithm
 from common_utils.timer import timeit
+from common_utils.smoothing_methods import lidstone
 
 
 class MMCA(BaseAlgorithm):
@@ -47,7 +52,46 @@ class MMCA(BaseAlgorithm):
 
         idxs = np.argsort(eig_vals)[::-1]
 
-        return idxs[:self.n_bands]
+        return _divergence_based_band_selection(X, idxs, eps=1.5)
+
+
+def _divergence_based_band_selection(X, bands_priorities, eps: float):
+    def _get_band_histogram(band):
+        return np.histogram(band, bins=256, range=(0, 256))
+
+    def _calculate_bands_dkl(B1, B2):
+        return np.sum(rel_entr(B1, B2)) + np.sum(rel_entr(B2, B1))
+
+    highest_priority_band = bands_priorities[0]
+    final_group = [highest_priority_band]
+
+    num_bands = X.shape[-1]
+
+    bands_histograms = [_get_band_histogram(X[:, i])[0] for i in range(num_bands)]
+
+    # Smooth histograms to eliminate 0 values
+    bands_histograms = [lidstone(hist) for hist in bands_histograms]
+
+    for j in np.arange(1, num_bands):
+        current_band_priority = bands_priorities[j]
+        should_keep = None
+
+        for band_idx in final_group:
+            D = _calculate_bands_dkl(bands_histograms[current_band_priority], bands_histograms[band_idx])
+
+            if D < eps:
+                should_keep = False
+                break
+
+            if band_idx == final_group[-1]:
+                should_keep = True
+                break
+
+        # In this case the current band has high information to contribute, and it is added your final group
+        if should_keep:
+            final_group.append(current_band_priority)
+
+    return final_group
 
 
 @timeit(num_repeats=5)
@@ -55,7 +99,10 @@ def main():
     a = np.random.randint(0, 255, (700, 670, 210))
     w = MMCA(n_bands=10)
     w.fit(a)
-    print(w.predict(a))
+    pred = w.predict(a)
+
+    print(len(pred))
+    print(pred)
 
 
 if __name__ == '__main__':

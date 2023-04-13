@@ -1,10 +1,14 @@
-from time import perf_counter
+"""
+Ref: https://www.researchgate.net/publication/224342471_Similarity-Based_Unsupervised_Band_Selection_for_Hyperspectral_Image_Analysis
+
+"""
+
 from typing import List, Tuple
 
 import numpy as np
 from pysptools.eea import FIPPI, NFINDR
 
-from base_class import BaseAlgorithm
+from algorithms.base_class import BaseAlgorithm
 from common_utils.timer import timeit
 
 
@@ -21,13 +25,16 @@ class LP(BaseAlgorithm):
         self.end_members_func = end_members_ext_func.lower()
 
     def fit(self, X):
+        X = super()._flat_input(X)
         self.X = X
+        self._preprocess(X)
         return self
 
     def predict(self, X) -> List:
         super().check_input(X)
 
         try:
+            # TODO: check if preprocessing is correct (using 10% of pixel)
             # preprocessing
             end_members = end_members_funcs[self.end_members_func]().extract(X, q=10)
         except KeyError:
@@ -113,13 +120,47 @@ class LP(BaseAlgorithm):
 
         return best_band.item()
 
+    def _preprocess(self, X, drop_thresh=0.8, num_neighbors=1):
+        def _calculate_bands_correlation(a):
+            a_m = a - np.nanmean(a,axis=0)
+            A = np.nansum(a_m**2,axis=0)
+            return np.dot(np.nan_to_num(a_m).T, np.nan_to_num(a_m)) / np.sqrt(np.dot(A[:, None], A[None]))
 
-@timeit(num_repeats=5)
+        def _remove_low_correlation_bands(a):
+            bands_corr = _calculate_bands_correlation(a)
+
+            bands_idx_to_keep = []
+
+            for i in range(bands_corr.shape[0]):
+                right = bands_corr[i, i + 1: i + num_neighbors + 1]
+                left = bands_corr[i, :i][-num_neighbors:]
+                if np.any(np.array([left, right]) < drop_thresh):
+                    continue
+                else:
+                    bands_idx_to_keep.append(i)
+
+            return a[:, bands_idx_to_keep]
+
+        def _remove_isolated_pixels(X, prec1=0.8, prec2=0.9):
+            max_pixel_in_band = np.max(X, axis=0)
+            find_abnormal = lambda band, max_val: (band > prec1 * max_val).nonzero()[0]
+            abnormal_candidates = [find_abnormal(X[:, i], max_pixel_in_band[i]) for i in range(X.shape[-1])]
+
+        # Step A - Remove Bad Bands with low correlation
+        # good_bands = _remove_low_correlation_bands(X)
+
+        # Step B - remove isolated noisy pixels
+        without_isolated_pixels = _remove_isolated_pixels(X)
+        # Step C - remove Dark/White noisy lines
+
+
+
+# @timeit(num_repeats=5)
 def main():
     a = np.random.randint(0, 255, (700, 670, 210))
     w = LP(n_bands=10, end_members_ext_func='FIPPI')
     w.fit(a)
-    print(w.predict(a))
+    # print(w.predict(a))
 
 
 if __name__ == '__main__':
