@@ -12,9 +12,10 @@ from scipy.special import kl_div, entr, softmax
 
 from algorithms.base_class import BaseAlgorithm
 from common_utils.timer import timeit
+from common_utils.information_theory import dkl
+from common_utils.misc import get_band_histogram
 
 
-# TODO: check option for another lang
 class WALU(BaseAlgorithm):
     def __init__(self, n_bands):
         super(WALU, self).__init__(n_bands)
@@ -59,11 +60,21 @@ class WALUDI(WALU):
         D = self._calculate_kl_divergence_score(X)
         clusters = self.hc.fit_predict(D)
 
-        return self.select_bands(D, clusters)
+        return self.select_bands(D, clusters).flatten()
 
-    def _calculate_kl_divergence_score(self, X):
-        X_hist = softmax(X)
-        return kl_div(X_hist, X_hist)
+    def _calculate_kl_divergence_score(
+            self,
+            X: np.ndarray
+    ) -> np.ndarray:
+
+        num_bands = X.shape[-1]
+        bands_histograms = [get_band_histogram(X[:, i], density=True)[0] for i in range(num_bands)]
+
+        # Get the D_kl for each 2 bands in the image
+        kls = [dkl(bands_histograms[idxs[0]], bands_histograms[1])
+               for idxs in itertools.product(range(num_bands), range(num_bands))]
+
+        return np.array(kls).reshape(num_bands, num_bands)
 
 
 class WALUMI(WALU):
@@ -190,7 +201,7 @@ class WALUMI(WALU):
 @timeit()
 def main():
     a = np.random.randint(0, 255, (700, 670, 128))
-    w = WALUDI(n_bands=3)
+    w = WALUDI(n_bands=10)
     w.fit(a)
     print(w.predict(a))
 
