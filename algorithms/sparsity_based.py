@@ -13,7 +13,7 @@ import numpy as np
 from sklearn.cluster import SpectralClustering
 
 from algorithms.base_class import BaseAlgorithm
-from common_utils.timer import timeit
+from algorithms_utils.timer import timeit
 
 
 class ISSC_HSI(BaseAlgorithm):

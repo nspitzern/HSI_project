@@ -11,9 +11,9 @@ from sklearn.cluster import AgglomerativeClustering
 from scipy.special import entr
 
 from algorithms.base_class import BaseAlgorithm
-from common_utils.timer import timeit
-from common_utils.information_theory import dkl
-from common_utils.misc import get_band_histogram
+from algorithms_utils.timer import timeit
+from algorithms_utils.information_theory import dkl
+from algorithms_utils.misc import get_band_histogram
 
 
 class WALU(BaseAlgorithm):
@@ -116,7 +116,7 @@ class WALUMI(WALU):
                 H2 = np.sum(entr(band2))  # Entropy X_j
                 c_xy = np.histogram2d(band1, band2)[0]
                 H_1_2 = np.sum(entr(c_xy))
-                I = H1 + H2 - H_1_2
+                I = H1 + H2 - H_1_2  # Mutual Information X_i, X_j
                 # I = mutual_info_score(None, None, contingency=c_xy)  # Mutual Information X_i, X_j
 
                 NI = (2 * I) / (H1 + H2)  # Normalized Mutual Information
