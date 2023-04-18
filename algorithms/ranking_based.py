@@ -49,7 +49,7 @@ class MMCA(BaseAlgorithm):
         """
         num_features, num_bands = X.shape
 
-        if not clusters:
+        if clusters is not None:
             clusters = KMeans(self.n_classes, n_init='auto').fit_predict(X)
 
         m = np.mean(X, axis=0)
