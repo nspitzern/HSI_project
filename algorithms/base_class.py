@@ -12,8 +12,8 @@ class BaseAlgorithm:
         self._check_num_bands(X)
 
     def _check_input_dims(self, X):
-        if len(X.shape) != 3:
-            raise ValueError(f'Image should be of dim 3, got dim {len(X.shape)}')
+        if len(X.shape) != 3 and len(X.shape) != 2:
+            raise ValueError(f'Image should be of dim 3 or 2, got dim {len(X.shape)}')
 
     def _check_num_bands(self, X):
         X_n_bands = X.shape[-1]

@@ -1,18 +1,19 @@
 from algorithms import MMCA
 
-from HyperBenchmark.HyperDataLoader import HyperDataLoader
+from HyperBenchmark.hyper_data_loader.HyperDataLoader import HyperDataLoader
 
 
 def main():
+    NUM_OF_CLASSES = 10
     loader = HyperDataLoader()
-    pavia = loader.load_dataset_supervised("PaviaU")
+    labeled_data = loader.generate_vectors("PaviaU", (1, 1))
+    X, y = labeled_data[0].image, labeled_data[0].lables
 
-    model = MMCA(n_bands=10)
+    model = MMCA(n_classes=NUM_OF_CLASSES)
 
-    for i, (img, label) in enumerate(pavia):
-        model.fit(img)
-        bands = model.predict(img)
-        print(bands)
+    model.fit(X)
+    bands = model.predict(X, clusters=y)
+    print(bands)
 
 
 if __name__ == '__main__':
