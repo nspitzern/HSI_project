@@ -72,13 +72,15 @@ class WALUDI(WALU):
     ) -> np.ndarray:
 
         num_bands = X.shape[-1]
-        bands_histograms = [get_band_histogram(X[:, i], density=True)[0] for i in range(num_bands)]
+        bands_histograms = [get_band_histogram(X[:, i], density=True) for i in range(num_bands)]
 
         # Get the D_kl for each 2 bands in the image
         kls = [dkl(bands_histograms[idxs[0]], bands_histograms[1])
                for idxs in itertools.product(range(num_bands), range(num_bands))]
 
-        return np.array(kls).reshape(num_bands, num_bands)
+        kls = np.array(kls).reshape(num_bands, num_bands)
+
+        return kls
 
 
 class WALUMI(WALU):
