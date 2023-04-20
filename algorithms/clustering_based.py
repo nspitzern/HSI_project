@@ -4,6 +4,7 @@ Ref: https://www.researchgate.net/publication/3205663_Clustering-Based_Hyperspec
 """
 
 import itertools
+from typing import Tuple
 
 import numpy as np
 from sklearn.metrics import mutual_info_score
@@ -17,13 +18,22 @@ from algorithms_utils.misc import get_band_histogram
 
 
 class WALU(BaseAlgorithm):
-    def __init__(self, n_bands):
+    def __init__(self, n_bands, similarity_func):
         super(WALU, self).__init__(n_bands)
+        self.similarity_func = similarity_func
+        self.hc = AgglomerativeClustering(n_clusters=n_bands)
 
-    def cluster(self, X):
-        raise NotImplementedError
-
-    def select_bands(self, D, clusters):
+    def _select_bands(
+            self,
+            D: np.ndarray,
+            clusters: np.ndarray
+    ) -> np.ndarray:
+        """
+        Returns the representative bands of each cluster
+        :param D: Bands similarity matrix.
+        :param clusters: Cluster belonging of each band.
+        :return: np array of bands indices.
+        """
         clusters_representatives = []
 
         for c in np.unique(clusters):
@@ -43,6 +53,20 @@ class WALU(BaseAlgorithm):
             clusters_representatives.append(cluster_c[rep_idx])
         return np.array(clusters_representatives)
 
+    def fit(self, X: np.ndarray):
+        self.X = X
+        return self
+
+    def predict(self, X: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        super().check_input(X)
+        X = super()._flat_input(X)
+
+        D = self.similarity_func(X)
+        clusters = self.hc.fit_predict(D)
+
+        bands = self._select_bands(D, clusters)
+        return X[:, bands], bands
+
 
 class WALUDI(WALU):
     def __init__(self, n_bands):
@@ -50,27 +74,17 @@ class WALUDI(WALU):
         Implementation of WALUDI algorithm for optimal bands selection
         :param n_bands: number of desired bands
         """
-        super(WALUDI, self).__init__(n_bands)
-        self.hc = AgglomerativeClustering(n_clusters=self.n_bands)
-
-    def fit(self, X):
-        self.X = X
-        return self
-
-    def predict(self, X):
-        super().check_input(X)
-        X = super()._flat_input(X)
-
-        D = self._calculate_kl_divergence_score(X)
-        clusters = self.hc.fit_predict(D)
-
-        return self.select_bands(D, clusters)
+        super(WALUDI, self).__init__(n_bands, self._calculate_kl_divergence_score)
 
     def _calculate_kl_divergence_score(
             self,
             X: np.ndarray
     ) -> np.ndarray:
-
+        """
+        Calculates the KL Divergence between each 2 bands
+        :param X: Image as np array (H*W, BANDS)
+        :return: np array of size (BANDS, BANDS) where each cell i,j is the KL Divergence between band i and band j.
+        """
         num_bands = X.shape[-1]
         bands_histograms = [get_band_histogram(X[:, i], density=True) for i in range(num_bands)]
 
@@ -89,23 +103,17 @@ class WALUMI(WALU):
         Implementation of WALUMI algorithm for optimal bands selection
         :param n_bands: Number of desired clusters
         """
-        super(WALUMI, self).__init__(n_bands)
-        self.hc = AgglomerativeClustering(n_clusters=self.n_bands)
+        super(WALUMI, self).__init__(n_bands, self._calculate_normalized_mutual_info_distance)
 
-    def fit(self, X):
-        self.X = X
-        return self
-
-    def predict(self, X):
-        super().check_input(X)
-        X = super()._flat_input(X)
-
-        D = self._calculate_normalized_mutual_info_distance(X)
-        clusters = self.hc.fit_predict(D)
-
-        return self.select_bands(D, clusters)
-
-    def _calculate_normalized_mutual_info_distance(self, X):
+    def _calculate_normalized_mutual_info_distance(
+            self,
+            X: np.ndarray
+    ) -> np.ndarray:
+        """
+        Calculates the Normalized Mutual Information Distance between each 2 bands
+        :param X: Image as np array (H*W, BANDS)
+        :return: np array of size (BANDS, BANDS) where each cell i,j is the norm-MI distance between band i and band j.
+        """
         n_bands = X.shape[-1]
         X_hat = np.empty((n_bands, n_bands))
 
@@ -131,7 +139,7 @@ class WALUMI(WALU):
 
 
 @timeit()
-def main():
+def _main():
     a = np.random.randint(0, 255, (700, 670, 128))
     w = WALUMI(n_bands=10)
     w.fit(a)
@@ -139,5 +147,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    _main()
 

@@ -17,16 +17,21 @@ class LP(BaseAlgorithm):
         self.n_bands = n_bands
 
     def fit(
-            self,
-            X: np.ndarray
-    ) -> BaseAlgorithm:
+        self,
+        X: np.ndarray
+    ):
         self.X = X
         return self
 
     def predict(
-            self,
-            X: np.ndarray
-    ) -> List:
+        self,
+        X: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+
+        :param X:
+        :return:
+        """
         super().check_input(X)
         X = super()._flat_input(X)
         cleaned_X = self._preprocess(X)
@@ -46,10 +51,25 @@ class LP(BaseAlgorithm):
             group_size += 1
             group_idxs.append(new_band_idx)
 
-        return group_idxs
+        return X[:, group_idxs], np.array(group_idxs)
 
     def _select_initial_bands_group(self, X) -> Tuple[np.array, List]:
-        def _get_X_proj(X, idx):
+        """
+        Selects the initial 2 bands for the bands selection process.
+        :param X: Vector Bands
+        :return: np array of 2 optimal bands.
+        """
+        def _get_X_proj(
+            X: np.ndarray,
+            idx: np.ndarray,
+        ) -> np.ndarray:
+            """
+            Get the projection of all other vectors except current band on the perpendicular plane of current band
+            i.e. current band - A_i, get the projection of all other bands A_j (i!=j) on {A_i}_perp
+            :param X: Set of vectors
+            :param idx: Index of vector of projection
+            :return: projected vector on the perpendicular plane of V_idx
+            """
             Q, _ = np.linalg.qr(X[:, idx].reshape((-1, 1)))
             X_proj = Q.T.dot(np.delete(X, idx, axis=1))
             return X_proj
@@ -93,23 +113,38 @@ class LP(BaseAlgorithm):
         return X[:, [first_band_idx, second_band_idx]], [first_band_idx, second_band_idx]
 
     def _choose_new_band(
-            self,
-            B: np.ndarray,
-            bands_group: np.ndarray,
-            num_features: int
+        self,
+        B: np.ndarray,
+        bands_group: np.ndarray,
+        num_features: int
     ) -> int:
+        """
+        Select the next band to be added to the optimal bands.
+        We want the band that is the most dissimilar to all other chosen bands.
+        :param B: All bands
+        :param bands_group: Previous chosen bands
+        :param num_features: Number of pixels in the bands
+        :return: Index of most dissimilar band
+        """
+
         #       |  |  |   |        |
         # X =   |  1  B1  B2  ...  |
         #       |  |  |   |        |
-        X = np.hstack([np.ones([num_features, 1]), bands_group])
+        y = B
+
+        # Calculate B_tag
+        X = np.hstack([np.ones((num_features, 1)), bands_group])
 
         a = np.linalg.inv(X.T.dot(X)).dot(X.T)
-        a = a.dot(B)
+        a = a.dot(y)
 
-        B_tag = np.hstack([np.ones([num_features, 1]), bands_group]).dot(a)
+        # Estimate B_tag from the parameters `a` and the other chosen bands
+        B_tag = np.hstack([np.ones((num_features, 1)), bands_group]).dot(a)
 
+        # Calculate the error between B_tag and all the other bands
         e = np.linalg.norm(B - B_tag, axis=0)
 
+        # We choose the most dissimilar band to all other chosen bands by taking the max of the error
         best_band = np.argmax(e)
 
         return best_band.item()
@@ -119,11 +154,26 @@ class LP(BaseAlgorithm):
             X: np.ndarray,
             drop_thresh: float = 0.8
     ) -> np.ndarray:
-        def _calculate_bands_correlation(a):
-            return np.corrcoef(a, rowvar=False)
+        """
+        Preprocess data to remove unnecessary bands and noise
 
-        def _remove_low_correlation_bands(a):
-            bands_corr = _calculate_bands_correlation(a)
+        Bands removal taken from section A of https://www.researchgate.net/publication/3205515_Hyperspectral_Imagery_Visualization_Using_Double_Layers
+        Data Whitening: https://en.wikipedia.org/wiki/Whitening_transformation, https://towardsdatascience.com/pca-whitening-vs-zca-whitening-a-numpy-2d-visual-518b32033edf
+        :param X: Vector Bands
+        :param drop_thresh: Threshold of bands correlation.
+        :return: Clean bands.
+        """
+        def _calculate_bands_correlation(X: np.ndarray) -> np.ndarray:
+            return np.corrcoef(X, rowvar=False)
+
+        def _remove_low_correlation_bands(a: np.ndarray) -> np.ndarray:
+            """
+            For each 2 bands calculate the correlation. Afterwards for each band check the correlation with its neighbors.
+            If the band has low correlation with its neighbors we consider it bad and remove it.
+            :param X: Vector bands
+            :return: Good bands
+            """
+            bands_corr = _calculate_bands_correlation(X)
 
             bands_idx_to_keep = []
 
@@ -137,7 +187,12 @@ class LP(BaseAlgorithm):
 
             return a[:, bands_idx_to_keep]
 
-        def _whiten_data(X):
+        def _whiten_data(X: np.ndarray) -> np.ndarray:
+            """
+            Apply data whitening to the bands
+            :param X: Vectors Bands
+            :return: Bands after whitening
+            """
             X_cov = np.cov(X - X.mean(axis=0), rowvar=False, bias=True)
             eig_vals, eig_vecs = np.linalg.eig(X_cov)
             D = np.diag(eig_vals)

@@ -8,6 +8,7 @@ Formula:
 Solution:
     Wˆ = −(X^T X + lambda*I)^−1 (diag((X^T X + lambda*I)−1))^−1
 """
+from typing import Tuple
 
 import numpy as np
 from sklearn.cluster import SpectralClustering
@@ -22,20 +23,22 @@ class ISSC_HSI(BaseAlgorithm):
         Implementation of L2 norm based sparse self-expressive clustering model
         with affinity measurement basing on angular similarity
     """
-    def __init__(self, n_band=10, coef_=1):
-        super(ISSC_HSI, self).__init__(n_band)
-        self.n_band = n_band
+    def __init__(self, n_bands=10, coef_=1):
+        super(ISSC_HSI, self).__init__(n_bands)
+        self.n_bands = n_bands
         self.coef_ = coef_
 
     def fit(self, X):
         self.X = X
         return self
 
-    def predict(self, X):
-        # TODO: check option to use matlab?
+    def predict(
+            self,
+            X: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         :param X: shape [n_row*n_clm, n_band]
-        :return: selected band subset
+        :return: selected band subset and indices
         """
         super().check_input(X)
         X = super()._flat_input(X)
@@ -47,10 +50,10 @@ class ISSC_HSI(BaseAlgorithm):
         affinity = (np.dot(coefficient_mat.transpose(), coefficient_mat) /
                     np.dot(temp.transpose(), temp))**2
 
-        sc = SpectralClustering(n_clusters=self.n_band, affinity='precomputed')
+        sc = SpectralClustering(n_clusters=self.n_bands, affinity='precomputed')
         sc.fit(affinity)
-        selected_band = self.__get_band(sc.labels_, X)
-        return selected_band
+        selected_band, band_idxs = self.__get_band(sc.labels_, X)
+        return selected_band, band_idxs
 
     def __get_n_clusters(self, W):
         eig_vals, eig_vecs = np.linalg.eig(W)
@@ -60,13 +63,18 @@ class ISSC_HSI(BaseAlgorithm):
 
         return DC
 
-    def __get_band(self, cluster_result, X):
+    def __get_band(
+            self,
+            cluster_result: np.ndarray,
+            X: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         select band according to the center of each cluster
         :param cluster_result:
         :param X:
         :return:
         """
+        bands_idxs = []
         selected_band = []
         n_cluster = np.unique(cluster_result).__len__()
         # img_ = X.reshape((n_row * n_column, -1))  # n_sample * n_band
@@ -76,16 +84,17 @@ class ISSC_HSI(BaseAlgorithm):
             distance = np.linalg.norm(X[:, idx[0]] - center, axis=0)
             band_ = X[:, idx[0]][:, distance.argmin()]
             selected_band.append(band_)
+            bands_idxs.append(idx[0][distance.argmin()])
         bands = np.asarray(selected_band).transpose()
         # bands = bands.reshape(n_cluster, n_row, n_column)
         # bands = np.transpose(bands, axes=(1, 2, 0))
-        return bands
+        return bands, np.array(bands_idxs)
 
 
 @timeit(num_repeats=5)
 def main():
     a = np.random.randint(0, 255, (700, 670, 210))
-    w = ISSC_HSI(n_band=10)
+    w = ISSC_HSI(n_bands=10)
     w.fit(a)
     print(w.predict(a))
 

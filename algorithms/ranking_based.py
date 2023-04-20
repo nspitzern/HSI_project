@@ -2,7 +2,7 @@
 Ref: https://www.researchgate.net/publication/3202233_A_joint_band_prioritization_and_band-decorrelation_approach_to_band_selection_for_hyperspectral_image_classification
 
 """
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 from sklearn.cluster import KMeans
@@ -27,13 +27,22 @@ class MMCA(BaseAlgorithm):
             X: np.ndarray,
             clusters: List[int] = None,
             eps: float = 1.5
-    ) -> np.ndarray:
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Returns the optimal bands.
+        :param X: np array Hyperspectral image.
+        :param clusters: (optional) A list of clusters indications for each pixel
+        :param eps: Dissimilarity threshold for KL Divergence between each band. This param effects the number of optimal
+        bands that are being returned.
+        :return: Optimal bands and their indices.
+        """
         super().check_input(X)
         X = super()._flat_input(X)
 
         idxs = self._rank_bands(X, clusters)
 
-        return _divergence_based_band_selection(X, idxs, eps=eps)
+        bands = _divergence_based_band_selection(X, idxs, eps=eps)
+        return X[:, bands], bands
 
     def _rank_bands(
             self,
@@ -86,6 +95,14 @@ def _divergence_based_band_selection(
         bands_priorities: List[int],
         eps: float
 ) -> np.ndarray:
+    """
+    See section IV. in https://www.researchgate.net/publication/3202233_A_joint_band_prioritization_and_band-decorrelation_approach_to_band_selection_for_hyperspectral_image_classification
+    :param X: Bands vectors (size: (H*W,N_BANDS))
+    :param bands_priorities: A list of indices of the bands sorted in descending priority order.
+    :param eps: Dissimilarity threshold for KL Divergence between each band. This param effects the number of optimal
+        bands that are being returned.
+    :return: np array of optimal bands indices.
+    """
     highest_priority_band = bands_priorities[0]
     final_group = [highest_priority_band]
 

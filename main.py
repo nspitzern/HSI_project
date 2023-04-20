@@ -1,3 +1,5 @@
+from time import perf_counter
+
 from algorithms import MMCA, WALUMI, WALUDI, LP, ISSC
 
 from HyperBenchmark.hyper_data_loader.HyperDataLoader import HyperDataLoader
@@ -17,10 +19,9 @@ def main():
     X, y = labeled_data[0].image, labeled_data[0].lables
 
     for alg_name, alg_f in algos.items():
+        start = perf_counter()
         if alg_name == 'MMCA':
             model = alg_f(n_classes=NUM_OF_CLASSES)
-        elif alg_name == 'ISSC':
-            model = alg_f(n_band=NUM_OF_CLASSES)
         else:
             model = alg_f(n_bands=NUM_OF_CLASSES)
 
@@ -31,7 +32,8 @@ def main():
         else:
             bands = model.predict(X)
 
-        print(f'Algo: {alg_name}')
+        end = perf_counter()
+        print(f'Algo: {alg_name}. ETA: {round(end - start)} seconds')
         print(bands)
 
         print('\n' * 2)
