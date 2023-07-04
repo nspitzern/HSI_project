@@ -1,0 +1,9 @@
+For given group of bands B ordered by rank B1 >= B2 >= B3 >= ... >= B_L and E size of final bands group:
+
+1. Start with group K = {B1}
+2. While len(K) < E:
+    2.1 Calculate DKL for each B_j (B_j not in K) and each band in K (Example, in first round for each band and B_1).
+    2.2 Now each B_j has a list of distances from the bands in K, calculate the min of those distances.
+    2.3 Sort the bands by min distance and pick max 10%.
+    2.4 From max 10% distances pick the band with max rank and add it to K.
+3. Return K
